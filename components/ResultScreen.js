@@ -3,7 +3,8 @@ import { jobTypes, questions } from '@/data/questions';
 
 export default function ResultScreen({ answers, onReset }) {
   // --- 1. スコア計算ロジック ---
-  const scores = { sales: 0, marketing: 0, consulting: 0, engineer: 0 };
+  // カテゴリを5つに増やしました
+  const scores = { personal: 0, corporate: 0, marketing: 0, consulting: 0, engineer: 0 };
   
   if (answers && Object.keys(answers).length > 0) {
     Object.keys(answers).forEach(qId => {
@@ -16,8 +17,10 @@ export default function ResultScreen({ answers, onReset }) {
     });
   }
 
-  let bestMatchKey = "sales";
-  let maxScore = -1;
+  // デフォルトは personal に設定
+  let bestMatchKey = "personal";
+  let maxScore = -999;
+  
   Object.keys(scores).forEach(key => {
     if (scores[key] > maxScore) {
       maxScore = scores[key];
@@ -28,24 +31,23 @@ export default function ResultScreen({ answers, onReset }) {
   const resultJob = jobTypes[bestMatchKey];
 
   // --- 2. グラフ用データ ---
+  // 5つのカテゴリを6つの能力パラメータに配分して表示
   const chartData = [
-    { subject: '行動力', A: (scores.sales || 10) * 4, fullMark: 100 },
-    { subject: '対人力', A: (scores.sales || 10) * 3 + 10, fullMark: 100 },
-    { subject: '分析力', A: (scores.marketing || 5) * 4, fullMark: 100 },
-    { subject: '創造力', A: (scores.marketing + scores.engineer) * 2, fullMark: 100 },
-    { subject: '技術力', A: (scores.engineer || 5) * 4, fullMark: 100 },
-    { subject: '論理力', A: (scores.consulting || 5) * 4, fullMark: 100 },
+    { subject: '行動力', A: (scores.personal || 0) * 5, fullMark: 100 }, // 個人営業力
+    { subject: '対人力', A: ((scores.personal || 0) + (scores.corporate || 0)) * 2.5, fullMark: 100 }, // 両営業の合算
+    { subject: '分析力', A: (scores.marketing || 0) * 5, fullMark: 100 },
+    { subject: '創造力', A: ((scores.marketing || 0) + (scores.engineer || 0)) * 2.5, fullMark: 100 },
+    { subject: '技術力', A: (scores.engineer || 0) * 5, fullMark: 100 },
+    { subject: '論理力', A: ((scores.consulting || 0) + (scores.corporate || 0)) * 2.5, fullMark: 100 }, // コンサル+法人営業
   ];
 
   // LINEボタンのクリック動作
   const handleLineClick = () => {
-    // 指定されたURLへ飛ばす
     window.location.href = 'https://line.me/R/ti/p/@571tbhqw';
   };
 
   // X（Twitter）ボタンのクリック動作
   const handleShare = () => {
-    // 自分のアカウントでツイートする画面を開く
     const text = `私の適職は【${resultJob.title}】でした！\nカクチカ適性インターン診断\n#カクチカ`;
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`;
     window.open(url, '_blank');
@@ -108,12 +110,11 @@ export default function ResultScreen({ answers, onReset }) {
           <span className="text-sm">公式LINEで自分に合ったインターンを見つける ▶︎</span>
         </button>
 
-        {/* シェアボタン（LINEボタンと同じ大きさに調整：py-4, shadow-lgを追加） */}
+        {/* シェアボタン */}
         <button 
           onClick={handleShare}
           className="w-full bg-black text-white font-bold py-4 rounded-xl shadow-lg hover:bg-gray-800 transition flex items-center justify-center gap-2 transform hover:scale-[1.02]"
         >
-          {/* Xロゴ (簡易版) */}
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
           <span className="text-sm">X (Twitter) で結果をシェア</span>
         </button>
