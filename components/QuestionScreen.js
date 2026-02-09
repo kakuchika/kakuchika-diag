@@ -1,73 +1,98 @@
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
-import { jobTypes } from '@/data/questions';
+import { useState, useRef, useEffect } from 'react';
+import { questions } from '@/data/questions';
 
-export default function ResultScreen({ scores }) {
-  // ※ここではスコア計算後の「勝者（最も高い職種）」判定ロジックが必要です
-  // 仮で「sales」をトップとします
-  const bestMatchKey = "sales"; 
-  const resultJob = jobTypes[bestMatchKey];
+export default function QuestionScreen({ onFinish }) {
+  const [currentQIndex, setCurrentQIndex] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const bottomRef = useRef(null); // 自動スクロール用
 
-  // グラフ用データ
-  const chartData = [
-    { subject: '行動力', A: 120, fullMark: 150 },
-    { subject: '対人力', A: 98, fullMark: 150 },
-    { subject: '分析力', A: 86, fullMark: 150 },
-    { subject: '創造力', A: 99, fullMark: 150 },
-    { subject: '技術力', A: 85, fullMark: 150 },
-  ];
+  // データがない場合のエラー回避
+  if (!questions || questions.length === 0) {
+    return <div>Loading questions...</div>;
+  }
 
-  const handleLineClick = () => {
-    // 公式LINEへ飛ばす（パラメータ付きURLなども可）
-    window.location.href = `https://line.me/R/ti/p/@kakuchika?text=${encodeURIComponent(resultJob.lineMessage)}`;
+  const currentQ = questions[currentQIndex];
+  const progress = ((currentQIndex + 1) / questions.length) * 100;
+
+  const handleAnswer = (score) => {
+    // 回答を保存
+    const newAnswers = { ...answers, [currentQ.id]: score };
+    setAnswers(newAnswers);
+
+    // 少し待ってから次の質問へ、または終了
+    setTimeout(() => {
+      if (currentQIndex < questions.length - 1) {
+        setCurrentQIndex(currentQIndex + 1);
+        // ページトップへ戻す
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        // 集計ロジックへ
+        onFinish(newAnswers); 
+      }
+    }, 400);
   };
 
   return (
-    <div className="p-6 pb-20 animate-fade-in">
-      <div className="text-center mb-6">
-        <p className="text-sm text-gray-500 font-bold">診断完了！あなたの適職は...</p>
-        <h2 className="text-3xl font-bold text-slate-800 mt-2">{resultJob.title}</h2>
+    <div className="pb-20">
+      {/* 進捗バー */}
+      <div className="w-full bg-gray-200 h-2">
+        <div 
+          className="bg-blue-600 h-2 transition-all duration-300" 
+          style={{ width: `${progress}%` }}
+        ></div>
       </div>
 
-      {/* メインビジュアル（職種イラスト） */}
-      <div className="w-full aspect-video bg-gray-200 rounded-xl mb-6 flex items-center justify-center">
-        <span className="text-gray-400">Result Illustration</span>
-        {/* <img src={resultJob.img} className="w-full h-full object-cover" /> */}
-      </div>
+      {/* 質問エリア */}
+      <div className="p-8 bg-white text-center animate-fade-in">
+        <p className="text-blue-500 font-bold mb-4 text-sm">Q.{currentQIndex + 1}</p>
+        <h3 className="text-xl font-bold text-slate-800 leading-relaxed mb-8">
+          {currentQ.text}
+        </h3>
 
-      {/* レーダーチャート */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
-        <h3 className="text-center text-sm font-bold text-gray-500 mb-2">基礎ステータス分析</h3>
-        <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
-              <PolarGrid stroke="#e5e7eb" />
-              <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 12 }} />
-              <Radar name="User" dataKey="A" stroke="#2563eb" fill="#3b82f6" fillOpacity={0.4} />
-            </RadarChart>
-          </ResponsiveContainer>
+        <div className="flex flex-col gap-3">
+          {[
+            { label: "◎ 非常によくあてはまる", score: 5 },
+            { label: "〇 ややあてはまる", score: 3 },
+            { label: "△ どちらともいえない", score: 1 },
+            { label: "× あまりあてはまらない", score: 0 },
+            { label: "×× まったくあてはまらない", score: -2 },
+          ].map((option, idx) => (
+            <button
+              key={idx}
+              onClick={() => handleAnswer(option.score)}
+              className="w-full border-2 border-slate-200 py-3 rounded-lg text-slate-600 font-bold hover:bg-blue-50 hover:border-blue-500 hover:text-blue-600 transition"
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* 解説テキスト */}
-      <div className="bg-blue-50 p-5 rounded-xl border border-blue-100 mb-8">
-        <h3 className="font-bold text-blue-800 mb-2">💡 なぜ向いている？</h3>
-        <p className="text-sm text-blue-900 leading-relaxed">
-          {resultJob.desc}
-          <br/>
-          あなたは「考えるより動く」タイプ。失敗を恐れない姿勢は、変化の激しい営業現場で最大の武器になります。
-        </p>
+      {/* スクロール誘導 */}
+      <div className="text-center py-6 text-gray-400 text-xs animate-bounce">
+        ∨ 下にスクロールして解説を見る ∨
       </div>
 
-      {/* LINE誘導ボタン（固定フッター風でもOK） */}
-      <button 
-        onClick={handleLineClick}
-        className="w-full bg-[#06C755] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-[#05b34c] transition flex items-center justify-center gap-2"
-      >
-        <span>LINEで求人を見る ▶︎</span>
-      </button>
+      {/* チャット解説エリア */}
+      <div className="bg-gray-100 p-6 space-y-4 border-t border-gray-200">
+        <div className="text-xs text-gray-400 text-center mb-2">▼ この質問の意図は？ ▼</div>
+        
+        {/* 学生のフキダシ */}
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-orange-200 flex items-center justify-center text-xl">🐤</div>
+          <div className="bg-white p-3 rounded-r-xl rounded-bl-xl shadow-sm text-sm text-gray-700 max-w-[80%]">
+            {currentQ.chat.student}
+          </div>
+        </div>
 
-      <div className="mt-4 flex gap-2 justify-center">
-        <button className="bg-black text-white px-4 py-2 rounded text-sm">Xで結果をシェア</button>
+        {/* 先輩のフキダシ */}
+        <div className="flex items-start gap-3 flex-row-reverse">
+          <div className="w-10 h-10 rounded-full bg-blue-800 flex items-center justify-center text-xl text-white">👤</div>
+          <div className="bg-slate-800 p-3 rounded-l-xl rounded-br-xl shadow-sm text-sm text-white max-w-[80%]">
+            {currentQ.chat.mentor}
+          </div>
+        </div>
+        <div ref={bottomRef} />
       </div>
     </div>
   );
