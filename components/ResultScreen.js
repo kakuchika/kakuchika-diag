@@ -1,74 +1,132 @@
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
-import { jobTypes } from '@/data/questions';
+import { jobTypes, questions } from '@/data/questions';
 
-export default function ResultScreen({ scores }) {
-  // スコアが一番高い職種を判定するロジック（簡易版）
-  // ※本来は scores の中身を比較して決めますが、まずは sales をデフォルトにします
-  const bestMatchKey = "sales"; 
+export default function ResultScreen({ answers, onReset }) {
+  // --- 1. スコア計算ロジック ---
+  const scores = { sales: 0, marketing: 0, consulting: 0, engineer: 0 };
+  
+  if (answers && Object.keys(answers).length > 0) {
+    Object.keys(answers).forEach(qId => {
+      const question = questions.find(q => q.id === parseInt(qId));
+      if (question && question.category) {
+        if (scores[question.category] !== undefined) {
+           scores[question.category] += answers[qId];
+        }
+      }
+    });
+  }
+
+  let bestMatchKey = "sales";
+  let maxScore = -1;
+  Object.keys(scores).forEach(key => {
+    if (scores[key] > maxScore) {
+      maxScore = scores[key];
+      bestMatchKey = key;
+    }
+  });
+
   const resultJob = jobTypes[bestMatchKey];
 
-  // グラフ用データ（仮データ）
+  // --- 2. グラフ用データ ---
   const chartData = [
-    { subject: '行動力', A: 120, fullMark: 150 },
-    { subject: '対人力', A: 98, fullMark: 150 },
-    { subject: '分析力', A: 86, fullMark: 150 },
-    { subject: '創造力', A: 99, fullMark: 150 },
-    { subject: '技術力', A: 85, fullMark: 150 },
+    { subject: '行動力', A: (scores.sales || 10) * 4, fullMark: 100 },
+    { subject: '対人力', A: (scores.sales || 10) * 3 + 10, fullMark: 100 },
+    { subject: '分析力', A: (scores.marketing || 5) * 4, fullMark: 100 },
+    { subject: '創造力', A: (scores.marketing + scores.engineer) * 2, fullMark: 100 },
+    { subject: '技術力', A: (scores.engineer || 5) * 4, fullMark: 100 },
+    { subject: '論理力', A: (scores.consulting || 5) * 4, fullMark: 100 },
   ];
 
+  // LINEボタンのクリック動作
   const handleLineClick = () => {
-    // 公式LINEへ飛ばす（パラメータ付きURL）
-    // ※ @YOUR_ID の部分を自分のIDに変えてください
-    window.location.href = `https://line.me/R/ti/p/@kakuchika?text=${encodeURIComponent(resultJob.lineMessage)}`;
+    // 指定されたURLへ飛ばす
+    window.location.href = 'https://line.me/R/ti/p/@571tbhqw';
+  };
+
+  // X（Twitter）ボタンのクリック動作
+  const handleShare = () => {
+    // 自分のアカウントでツイートする画面を開く
+    const text = `私の適職は【${resultJob.title}】でした！\nカクチカ適性インターン診断\n#カクチカ`;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`;
+    window.open(url, '_blank');
   };
 
   return (
-    <div className="p-6 pb-20 animate-fade-in">
-      <div className="text-center mb-6">
-        <p className="text-sm text-gray-500 font-bold">診断完了！あなたの適職は...</p>
-        <h2 className="text-3xl font-bold text-slate-800 mt-2">{resultJob?.title || '判定中'}</h2>
+    <div className="p-6 pb-20 animate-fade-in bg-white min-h-screen">
+      <div className="text-center mb-6 pt-4">
+        <p className="text-sm text-gray-500 font-bold mb-2">診断完了！あなたの適職は...</p>
+        <h2 className="text-2xl font-bold text-slate-800">{resultJob.title}</h2>
       </div>
 
-      {/* メインビジュアル（職種イラスト） */}
-      <div className="w-full aspect-video bg-gray-100 rounded-xl mb-6 flex items-center justify-center border-2 border-dashed border-gray-300">
-        <span className="text-gray-400 font-bold">ここにイラストが入ります</span>
-        {/* <img src={resultJob.img} className="w-full h-full object-cover" /> */}
+      {/* --- メインビジュアル --- */}
+      <div className="w-full aspect-video bg-gray-50 rounded-xl mb-6 flex items-center justify-center border border-gray-100 overflow-hidden shadow-sm">
+        {resultJob.img ? (
+          <img 
+            src={resultJob.img} 
+            alt={resultJob.title} 
+            className="w-full h-full object-cover transition-transform hover:scale-105 duration-500"
+            onError={(e) => e.target.style.display = 'none'}
+          />
+        ) : (
+          <span className="text-gray-400 font-bold">画像準備中...</span>
+        )}
       </div>
 
-      {/* レーダーチャート */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
-        <h3 className="text-center text-sm font-bold text-gray-500 mb-2">基礎ステータス分析</h3>
+      {/* --- レーダーチャート --- */}
+      <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 mb-6">
+        <h3 className="text-center text-xs font-bold text-gray-400 mb-2">▼ 基礎ステータス分析 ▼</h3>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
+            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
               <PolarGrid stroke="#e5e7eb" />
-              <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 12 }} />
-              <Radar name="User" dataKey="A" stroke="#2563eb" fill="#3b82f6" fillOpacity={0.4} />
+              <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 11 }} />
+              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+              <Radar name="User" dataKey="A" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* 解説テキスト */}
+      {/* --- 解説テキスト --- */}
       <div className="bg-blue-50 p-5 rounded-xl border border-blue-100 mb-8">
-        <h3 className="font-bold text-blue-800 mb-2">💡 なぜ向いている？</h3>
-        <p className="text-sm text-blue-900 leading-relaxed">
-          {resultJob?.desc || 'データ読み込み中...'}
-          <br/>
-          あなたは「考えるより動く」タイプ。失敗を恐れない姿勢は、変化の激しい営業現場で最大の武器になります。
+        <h3 className="font-bold text-blue-800 mb-2 flex items-center gap-2">
+          <span>💡</span> なぜ向いている？
+        </h3>
+        <p className="text-sm text-slate-700 leading-relaxed">
+          {resultJob.desc}
         </p>
       </div>
 
-      {/* LINE誘導ボタン */}
-      <button 
-        onClick={handleLineClick}
-        className="w-full bg-[#06C755] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-[#05b34c] transition flex items-center justify-center gap-2"
-      >
-        <span>LINEで求人を見る ▶︎</span>
-      </button>
+      {/* --- アクションボタン群 --- */}
+      <div className="space-y-4">
+        {/* LINEボタン */}
+        <button 
+          onClick={handleLineClick}
+          className="w-full bg-[#06C755] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-[#05b34c] transition flex items-center justify-center gap-2 transform hover:scale-[1.02]"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 5.96 2 10.84C2 13.9 3.93 16.63 6.84 18.15C6.7 18.78 6.44 19.98 6.44 19.98C6.44 19.98 9.53 19.14 11.23 17.96C11.49 17.98 11.74 18 12 18C17.52 18 22 14.04 22 9.16C22 4.28 17.52 2 12 2Z" /></svg>
+          <span className="text-sm">公式LINEで自分に合ったインターンを見つける ▶︎</span>
+        </button>
 
-      <div className="mt-4 flex gap-2 justify-center">
-        <button className="bg-gray-800 text-white px-4 py-2 rounded text-sm font-bold">Xでシェア</button>
+        {/* シェアボタン（LINEボタンと同じ大きさに調整：py-4, shadow-lgを追加） */}
+        <button 
+          onClick={handleShare}
+          className="w-full bg-black text-white font-bold py-4 rounded-xl shadow-lg hover:bg-gray-800 transition flex items-center justify-center gap-2 transform hover:scale-[1.02]"
+        >
+          {/* Xロゴ (簡易版) */}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+          <span className="text-sm">X (Twitter) で結果をシェア</span>
+        </button>
+
+        {/* もう一度診断するボタン */}
+        <div className="text-center pt-6 pb-8">
+          <button 
+             onClick={onReset} 
+             className="text-gray-400 font-bold text-sm border-b border-gray-300 hover:text-blue-500 hover:border-blue-500 transition pb-1"
+           >
+             🔄 もう一度最初から診断する
+           </button>
+        </div>
       </div>
     </div>
   );
