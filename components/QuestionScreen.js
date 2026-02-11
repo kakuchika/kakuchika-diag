@@ -4,7 +4,7 @@ import { questions } from '@/data/questions';
 export default function QuestionScreen({ onFinish }) {
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [answers, setAnswers] = useState({});
-  const bottomRef = useRef(null); // 自動スクロール用
+  const bottomRef = useRef(null); 
 
   // データがない場合のエラー回避
   if (!questions || questions.length === 0) {
@@ -15,21 +15,25 @@ export default function QuestionScreen({ onFinish }) {
   const progress = ((currentQIndex + 1) / questions.length) * 100;
 
   const handleAnswer = (score) => {
-    // 回答を保存
     const newAnswers = { ...answers, [currentQ.id]: score };
     setAnswers(newAnswers);
 
-    // 少し待ってから次の質問へ、または終了
     setTimeout(() => {
       if (currentQIndex < questions.length - 1) {
         setCurrentQIndex(currentQIndex + 1);
-        // ページトップへ戻す
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        // 集計ロジックへ
         onFinish(newAnswers); 
       }
-    }, 400);
+    }, 300);
+  };
+
+  // ★ひとつ前に戻る機能
+  const handleBack = () => {
+    if (currentQIndex > 0) {
+      setCurrentQIndex(currentQIndex - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   return (
@@ -43,8 +47,18 @@ export default function QuestionScreen({ onFinish }) {
       </div>
 
       {/* 質問エリア */}
-      <div className="p-8 bg-white text-center shadow-sm mb-6">
-        <p className="text-blue-600 font-bold mb-4 text-sm tracking-wider">QUESTION {currentQIndex + 1} / {questions.length}</p>
+      <div className="p-8 bg-white text-center shadow-sm mb-6 relative">
+        {/* ★戻るボタン (2問目以降のみ表示) */}
+        {currentQIndex > 0 && (
+          <button 
+            onClick={handleBack}
+            className="absolute top-4 left-4 text-gray-400 text-xs font-bold hover:text-blue-500 transition flex items-center gap-1"
+          >
+            ← ひとつ戻る
+          </button>
+        )}
+
+        <p className="text-blue-600 font-bold mb-4 text-sm tracking-wider mt-6">QUESTION {currentQIndex + 1} / {questions.length}</p>
         <h3 className="text-xl font-bold text-slate-800 leading-relaxed mb-8">
           {currentQ.text}
         </h3>
@@ -77,26 +91,26 @@ export default function QuestionScreen({ onFinish }) {
       <div className="bg-gray-100 p-6 space-y-6 border-t border-gray-200">
         <div className="text-xs text-gray-500 font-bold text-center mb-2">▼ この質問の意図は？ ▼</div>
         
-        {/* 学生のフキダシ（画像を適用） */}
+        {/* 学生のフキダシ */}
         <div className="flex items-start gap-3">
           <img 
             src="/images/student_icon.png" 
             alt="学生" 
             className="w-10 h-10 rounded-full bg-orange-100 border-2 border-orange-200 object-cover"
-            onError={(e) => e.target.src = 'https://placehold.jp/40/fcd34d/ffffff/?text=学生'} // 画像がない時の予備
+            onError={(e) => e.target.src = 'https://placehold.jp/40/fcd34d/ffffff/?text=学生'}
           />
           <div className="bg-white p-4 rounded-r-2xl rounded-bl-2xl shadow-sm text-sm text-gray-700 leading-relaxed max-w-[85%] relative top-2">
             {currentQ.chat.student}
           </div>
         </div>
 
-        {/* 先輩のフキダシ（画像を適用） */}
+        {/* 先輩のフキダシ */}
         <div className="flex items-start gap-3 flex-row-reverse">
           <img 
             src="/images/mentor_icon.png" 
             alt="先輩" 
             className="w-10 h-10 rounded-full bg-blue-800 border-2 border-blue-900 object-cover"
-            onError={(e) => e.target.src = 'https://placehold.jp/40/1e40af/ffffff/?text=先輩'} // 画像がない時の予備
+            onError={(e) => e.target.src = 'https://placehold.jp/40/1e40af/ffffff/?text=先輩'}
           />
           <div className="bg-slate-800 p-4 rounded-l-2xl rounded-br-2xl shadow-sm text-sm text-white leading-relaxed max-w-[85%] relative top-2">
             {currentQ.chat.mentor}
