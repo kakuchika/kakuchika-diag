@@ -3,7 +3,6 @@ import { jobTypes, questions } from '@/data/questions';
 
 export default function ResultScreen({ answers, onReset }) {
   // --- 1. スコア計算ロジック ---
-  // カテゴリを5つに増やしました
   const scores = { personal: 0, corporate: 0, marketing: 0, consulting: 0, engineer: 0 };
   
   if (answers && Object.keys(answers).length > 0) {
@@ -17,7 +16,7 @@ export default function ResultScreen({ answers, onReset }) {
     });
   }
 
-  // デフォルトは personal に設定
+  // 最高スコアの職種を判定
   let bestMatchKey = "personal";
   let maxScore = -999;
   
@@ -31,14 +30,13 @@ export default function ResultScreen({ answers, onReset }) {
   const resultJob = jobTypes[bestMatchKey];
 
   // --- 2. グラフ用データ ---
-  // 5つのカテゴリを6つの能力パラメータに配分して表示
   const chartData = [
-    { subject: '行動力', A: (scores.personal || 0) * 5, fullMark: 100 }, // 個人営業力
-    { subject: '対人力', A: ((scores.personal || 0) + (scores.corporate || 0)) * 2.5, fullMark: 100 }, // 両営業の合算
+    { subject: '行動力', A: (scores.personal || 0) * 5, fullMark: 100 },
+    { subject: '対人力', A: ((scores.personal || 0) + (scores.corporate || 0)) * 2.5, fullMark: 100 },
     { subject: '分析力', A: (scores.marketing || 0) * 5, fullMark: 100 },
     { subject: '創造力', A: ((scores.marketing || 0) + (scores.engineer || 0)) * 2.5, fullMark: 100 },
     { subject: '技術力', A: (scores.engineer || 0) * 5, fullMark: 100 },
-    { subject: '論理力', A: ((scores.consulting || 0) + (scores.corporate || 0)) * 2.5, fullMark: 100 }, // コンサル+法人営業
+    { subject: '論理力', A: ((scores.consulting || 0) + (scores.corporate || 0)) * 2.5, fullMark: 100 },
   ];
 
   // LINEボタンのクリック動作
@@ -99,6 +97,17 @@ export default function ResultScreen({ answers, onReset }) {
         </p>
       </div>
 
+      {/* --- 誘導メッセージ (New!) --- */}
+      <div className="text-center mt-10 mb-6">
+        <p className="font-bold text-slate-800 text-lg mb-2">
+          あなたにぴったりの企業が待っています！
+        </p>
+        <p className="text-sm text-gray-500">
+          診断結果を元に、<br/>
+          カクチカで自分に合ったインターンを探してみませんか？
+        </p>
+      </div>
+
       {/* --- アクションボタン群 --- */}
       <div className="space-y-4">
         {/* LINEボタン */}
@@ -107,7 +116,7 @@ export default function ResultScreen({ answers, onReset }) {
           className="w-full bg-[#06C755] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-[#05b34c] transition flex items-center justify-center gap-2 transform hover:scale-[1.02]"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 5.96 2 10.84C2 13.9 3.93 16.63 6.84 18.15C6.7 18.78 6.44 19.98 6.44 19.98C6.44 19.98 9.53 19.14 11.23 17.96C11.49 17.98 11.74 18 12 18C17.52 18 22 14.04 22 9.16C22 4.28 17.52 2 12 2Z" /></svg>
-          <span className="text-sm">公式LINEで自分に合ったインターンを見つける ▶︎</span>
+          <span className="text-sm">カクチカ公式LINEで自分に合ったインターンを見つける ▶︎</span>
         </button>
 
         {/* シェアボタン */}
